@@ -62,14 +62,13 @@ smart-trader net flow positive, exchange net flow positive.
 > "Smart traders accumulating. The same token flowing into exchanges. You are
 > buying someone's exit."
 
-**0:48–0:60 — the receipts**
+**0:47–0:53 — close**
 
-```
-wc -l out/calls.jsonl
-tail -1 out/calls.jsonl
-```
+Repo name, one line, the GitHub URL, and `@nansen_ai`.
 
-> "Every call logged with its Nansen request ID and credit cost."
+The API call count is deliberately not shown. It matters to the buildathon
+rules, not to anyone watching; it lives in `out/calls.jsonl` and the
+submission form.
 
 ## Notes
 

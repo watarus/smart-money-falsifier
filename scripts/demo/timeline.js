@@ -3,11 +3,8 @@
 // The buildathon requires the video to be followable without audio, so every
 // point is made by a burned-in caption, a highlight, or a scroll -- never by
 // narration. Everything shown is the real report rendered from real Nansen
-// responses; the script only drives the camera. Total runtime ~58s.
+// responses; the script only drives the camera. Total runtime ~53s.
 (() => {
-  const RECEIPT = window.__DEMO_RECEIPT__ || "";
-  const CALLS = window.__DEMO_CALLS__ || "";
-
   const style = document.createElement("style");
   style.textContent = `
     #demo-cap {
@@ -34,12 +31,6 @@
     }
     #demo-panel .box { max-width: 1060px; text-align: center; }
     #demo-panel .big { font-size: 46px; font-weight: 800; color: #fff; }
-    #demo-panel code {
-      display: block; margin-top: 22px; padding: 16px 18px; text-align: left;
-      background: #11151f; border: 1px solid #262c3a; border-radius: 10px;
-      font: 15px/1.5 ui-monospace, "SF Mono", Menlo, monospace; color: #9fe7c9;
-      white-space: pre-wrap; word-break: break-all;
-    }
   `;
   document.head.appendChild(style);
 
@@ -112,13 +103,7 @@
     }],
     [47500, () => {
       clearHi(); say("");
-      panel.innerHTML = `<div class="box">
-        <div class="big">${CALLS}</div>
-        <div>every call cached and logged with its Nansen request id</div>
-        <code>${RECEIPT}</code></div>`;
       panel.style.opacity = "1";
-    }],
-    [53000, () => {
       panel.innerHTML = `<div class="box">
         <div class="big">smart-money-falsifier</div>
         <div style="margin-top:10px">Don't copy the signal. Try to break it first.</div>
