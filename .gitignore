@@ -1,0 +1,16 @@
+.env
+*.env
+bin/
+out/
+data/cache/
+data/fixtures/
+*.jsonl
+
+# Local mirrors of Nansen's own API documentation, pulled with `curl` for
+# reference while building. They are Nansen's material, not ours, and have no
+# business being redistributed from a public repo. docs/DESIGN.md, DEMO.md and
+# SUBMISSION.md are written here and stay tracked.
+docs/*.md
+!docs/DESIGN.md
+!docs/DEMO.md
+!docs/SUBMISSION.md

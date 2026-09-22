@@ -1,0 +1,110 @@
+package score
+
+import "testing"
+
+func TestDecideVerdict_BelowFloorIsWeak(t *testing.T) {
+	// N < 3 carries no independence signal at all, regardless of M — but
+	// with the exit signal not firing here, there's no signal of any kind.
+	got := DecideVerdict(2, 1, -100, -100, true)
+	if got != VerdictWeak {
+		t.Fatalf("got %v want WEAK", got)
+	}
+}
+
+func TestDecideVerdict_BelowFloorExitOnly(t *testing.T) {
+	// The buyer floor gates the independence verdict only, never the exit
+	// signal: N < 3 with the exit signal firing is EXIT_ONLY, not WEAK.
+	got := DecideVerdict(2, 1, 100, 100, true)
+	if got != VerdictExitOnly {
+		t.Fatalf("got %v want EXIT_ONLY", got)
+	}
+}
+
+func TestDecideVerdict_Thin(t *testing.T) {
+	got := DecideVerdict(5, 1, -100, -100, true)
+	if got != VerdictThin {
+		t.Fatalf("got %v want THIN", got)
+	}
+}
+
+func TestDecideVerdict_Concentrated(t *testing.T) {
+	// N=4, M=2: more than one actor, but not every buyer independent.
+	got := DecideVerdict(4, 2, -100, -100, true)
+	if got != VerdictConcentrated {
+		t.Fatalf("got %v want CONCENTRATED", got)
+	}
+}
+
+func TestDecideVerdict_Confirmed(t *testing.T) {
+	// M == N: no two buyers share a funder.
+	got := DecideVerdict(5, 5, -100, -100, true)
+	if got != VerdictConfirmed {
+		t.Fatalf("got %v want CONFIRMED", got)
+	}
+}
+
+func TestDecideVerdict_Both(t *testing.T) {
+	// THIN (M==1) plus the exit signal firing becomes BOTH.
+	got := DecideVerdict(3, 1, 100, 100, true)
+	if got != VerdictBoth {
+		t.Fatalf("got %v want BOTH", got)
+	}
+}
+
+func TestDecideVerdict_BothFromConcentrated(t *testing.T) {
+	// CONCENTRATED (1<M<N) plus the exit signal firing also becomes BOTH.
+	got := DecideVerdict(4, 2, 100, 100, true)
+	if got != VerdictBoth {
+		t.Fatalf("got %v want BOTH", got)
+	}
+}
+
+func TestDecideVerdict_Distributing(t *testing.T) {
+	// CONFIRMED (M==N) plus the exit signal firing becomes DISTRIBUTING.
+	got := DecideVerdict(4, 4, 100, 100, true)
+	if got != VerdictDistributing {
+		t.Fatalf("got %v want DISTRIBUTING", got)
+	}
+}
+
+func TestDecideVerdict_MissingFlowNeverFiresDistribution(t *testing.T) {
+	// Even though the signed values look like a distribution firing, no
+	// flow data means the signal must not fire, so CONFIRMED (M==N)
+	// stays CONFIRMED rather than becoming DISTRIBUTING.
+	got := DecideVerdict(4, 4, 100, 100, false)
+	if got != VerdictConfirmed {
+		t.Fatalf("expected missing flow data to leave CONFIRMED alone, got %v", got)
+	}
+}
+
+// TestDecideVerdict_Total exercises every (N,M) shape the table must
+// cover, per docs/DESIGN.md's "the rules below are total" claim,
+// including the N>=3,M==2 case that fell through to WEAK in the first
+// version (ETH 4->2, USDG 3->2, ZCAT 3->2 in the real cache).
+func TestDecideVerdict_Total(t *testing.T) {
+	cases := []struct {
+		name     string
+		n, m     int
+		smart, x float64
+		hasFlow  bool
+		want     Verdict
+	}{
+		{"n=0", 0, 0, 0, 0, false, VerdictWeak},
+		{"n=1,m=1", 1, 1, 0, 0, false, VerdictWeak},
+		{"n=2,m=2", 2, 2, 0, 0, false, VerdictWeak},
+		{"n=1,m=1 exit fires", 1, 1, 1, 1, true, VerdictExitOnly},
+		{"n=2,m=2 exit fires", 2, 2, 1, 1, true, VerdictExitOnly},
+		{"eth 4->2 no dist", 4, 2, -1, -1, true, VerdictConcentrated},
+		{"usdg 3->2 no dist", 3, 2, -1, -1, true, VerdictConcentrated},
+		{"n=3,m=1 no dist", 3, 1, -1, -1, true, VerdictThin},
+		{"n=3,m=3 no dist", 3, 3, -1, -1, true, VerdictConfirmed},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := DecideVerdict(c.n, c.m, c.smart, c.x, c.hasFlow)
+			if got != c.want {
+				t.Fatalf("DecideVerdict(%d,%d,...) = %v, want %v", c.n, c.m, got, c.want)
+			}
+		})
+	}
+}
