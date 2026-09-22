@@ -170,8 +170,21 @@ func censusHeadline(census score.FunderCensus, walletCount int) string {
 	if len(parts) != 1 {
 		who = "people"
 	}
-	return fmt.Sprintf("%d of %d top smart-money wallets trace back to just %d %s: %s.",
-		traced, walletCount, len(parts), who, strings.Join(parts, ", "))
+
+	// Name only the biggest few. Listing all of them runs past a screen's width
+	// and reads as a bug when several share a Nansen label -- the full seed
+	// produces four separate addresses all labelled "High Activity", so the
+	// sentence ended "... High Activity funded 2, High Activity funded 2, ...".
+	// The count carries the finding; the tail belongs in the table below.
+	const named = 3
+	funders := len(parts)
+	tail := ""
+	if funders > named {
+		tail = fmt.Sprintf(", and %d more", funders-named)
+		parts = parts[:named]
+	}
+	return fmt.Sprintf("%d of %d top smart-money wallets trace back to just %d %s: %s%s.",
+		traced, walletCount, funders, who, strings.Join(parts, ", "), tail)
 }
 
 func printTable(result *pipeline.Result) {

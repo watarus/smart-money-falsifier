@@ -63,8 +63,8 @@ on its own. Keep the finding concrete — the numbers are the hook, not adjectiv
 > They were one person.
 >
 > I built a tool on @nansen_ai that tries to *falsify* smart-money signals
-> instead of copying them. On a 50-wallet sample, 16 of the top 50 smart money
-> wallets traced back to just two funders.
+> instead of copying them. 67 of the top 172 smart money wallets trace back to
+> just 13 funders.
 >
 > It walks the funder graph to collapse apparent independence, and flags tokens
 > where smart traders are accumulating while the token flows into exchanges —

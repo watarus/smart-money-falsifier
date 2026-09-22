@@ -16,16 +16,17 @@ relations. No block explorer gives you this.
 
 ## What the real data says
 
-Measured on a live 50-wallet sample (`out/calls.jsonl`, 282 calls, 0 failures):
+Measured over the full seed (`out/calls.jsonl`, 1019 calls, 0 failures):
 
-- 50 wallets resolved to **45 distinct first funders** — but 3 funders are
-  shared, and **18 of the 50 wallets trace back to just 3 people**:
-  `realkingof.sol` funded 10, an address Nansen labels `Token Millionaire`
-  funded 6, and one unlabelled address funded 2. None is an exchange, so this
-  is not the usual "everyone withdrew from Binance" artefact.
-- `exchange_net_flow_usd` is populated for 59 of 84 tokens (70%).
-- Smart traders buying *while* exchanges receive fires on 7 of 84 tokens (8%) —
-  rare enough to be worth flagging, common enough to be worth computing.
+- **67 of the 172 wallets trace back to just 13 funders**: `realkingof.sol`
+  funded 20, an address Nansen labels `Token Millionaire` funded 14,
+  `kiing.sol` funded 7, and ten more funded between 2 and 5 each. None is an
+  exchange, so this is not the usual "everyone withdrew from Binance" artefact.
+- `exchange_net_flow_usd` is populated for 198 of 330 tokens (60%).
+- The exit signal fires on 32 of 330 tokens (10%) — rare enough to be worth
+  flagging, common enough to be worth computing.
+- Of the 56 tokens with at least 3 buyers: 9 `CONCENTRATED`, 15 `CONFIRMED`,
+  32 `DISTRIBUTING`, 0 `UNVERIFIED` once funder coverage is complete.
 
 The pitch is not hypothetical; these numbers are the demo.
 
@@ -34,14 +35,14 @@ The pitch is not hypothetical; these numbers are the demo.
 `relation` on `profiler/address/related-wallets` is a free-form string, not an
 enum. Observed values and how to treat them:
 
-| relation | count in sample | use |
+| relation | observed | use |
 | --- | ---: | --- |
-| `First Funder` | 56 | **the clustering edge** |
-| `Deployed Program` | 59 | ignore — contract artefact |
-| `Deployed Contract` | 14 | ignore |
-| `Deployed via` | 10 | ignore |
-| `Deployed by` | 3 | ignore |
-| `Created by` | 3 | ignore |
+| `Deployed Program` | 187 | ignore — contract artefact |
+| `First Funder` | 182 | **the clustering edge** |
+| `Deployed Contract` | 23 | ignore |
+| `Deployed via` | 18 | ignore |
+| `Deployed by` | 7 | ignore |
+| `Created by` | 7 | ignore |
 
 Only `First Funder` links a wallet to a funding actor. The deployment relations
 attach a wallet to contracts it touched and would merge unrelated wallets into
@@ -132,9 +133,9 @@ test must assert that distinct inputs produce distinct outputs.
 
 ## Hard constraint: credits
 
-Credits are consumed per call and priced per endpoint. Balance was 1880 after
-the 50-wallet sample. The buildathon wants 1,000+ calls logged between Sep 14
-and Sep 27, but **calls are not the goal** — fetch what the product needs while
+Credits are consumed per call and priced per endpoint. Balance was 1143 after
+the full run. The buildathon wants 1,000+ calls logged between Sep 14 and
+Sep 27, but **calls are not the goal** — fetch what the product needs while
 developing and the count accumulates on its own. Do not add stages to inflate it.
 
 | endpoint | credits | role |
@@ -186,8 +187,8 @@ The token table is the product; the wallet table is supporting evidence.
 
 **The finding has to outrank the table.** The first rendering buried the whole
 point: 75 of 84 token rows were `WEAK` single-buyer noise, and the funder census
-— the one number worth remembering, *18 of 50 top smart-money wallets trace to
-three people* — sat in a small box above a wall of grey.
+— the one number worth remembering, *67 of 172 top smart-money wallets trace to
+13 people* — sat in a small box above a wall of grey.
 
 So:
 

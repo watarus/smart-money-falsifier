@@ -14,13 +14,16 @@ A "seven smart-money wallets are buying this" headline lies in two ways:
 Both are only visible because Nansen labels addresses and exposes funder
 relations. No block explorer gives you this.
 
-On a live 50-wallet sample, **18 of the 50 top smart-money wallets traced back
-to just three funders** — `realkingof.sol` funded 10 of them, an address Nansen
-labels `Token Millionaire` funded 6, and one unlabelled address funded 2. None
-is an exchange, so this is not the usual "everyone withdrew from Binance"
-artefact. The distribution
-signal — smart traders buying while exchanges receive — fired on 7 of 84
-tokens.
+Over the full Smart Money feed, **67 of the 172 top smart-money wallets traced
+back to just 13 funders** — `realkingof.sol` funded 20 of them, an address
+Nansen labels `Token Millionaire` funded 14, `kiing.sol` funded 7. None is an
+exchange, so this is not the usual "everyone withdrew from Binance" artefact.
+The exit signal — smart traders buying while the token flows into exchanges —
+fired on 32 of 330 tokens.
+
+Of the 56 tokens with enough buyers to judge, 9 came back `CONCENTRATED` and 15
+`CONFIRMED`. The tool clears signals as well as flagging them; that is what
+makes a flag worth reading.
 
 Built with the [Nansen API](https://docs.nansen.ai/) for the Meridian Buildathon.
 
