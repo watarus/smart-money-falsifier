@@ -15,6 +15,7 @@ import (
 
 	"github.com/watarus/nansen/internal/nansen"
 	"github.com/watarus/nansen/internal/pipeline"
+	"github.com/watarus/nansen/internal/score"
 )
 
 func main() {
@@ -32,6 +33,7 @@ func run(args []string) error {
 		yes            = fs.Bool("yes", false, "skip the confirmation prompt before spending credits")
 		concurrency    = fs.Int("concurrency", 8, "bounded worker pool size for wallet/token enrichment")
 		maxWallets     = fs.Int("max-wallets", 0, "cap enrichment to the N highest-value wallets in the seed (0 = all)")
+		minSignalUSD   = fs.Float64("min-signal-usd", score.MinSignalUSD, "smart-money buy volume a token needs before its buyers are judged for independence")
 		creditFloor    = fs.Int("credit-floor", 100, "refuse a call if it would drop remaining credits below this floor")
 		allowExpensive = fs.Bool("allow-expensive", false, "allow calls to endpoints costing more than 1 credit")
 		ratePerSec     = fs.Int("rate-per-sec", 12, "max requests per second (Free tier allows 15)")
@@ -73,6 +75,7 @@ func run(args []string) error {
 
 	pl := pipeline.New(client, *concurrency)
 	pl.MaxWallets = *maxWallets
+	pl.MinSignalUSD = *minSignalUSD
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

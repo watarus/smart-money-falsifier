@@ -19,9 +19,10 @@ import (
 func TestWriteReport_AllVerdicts(t *testing.T) {
 	liquidity := 12345.0
 	result := &pipeline.Result{
-		Seed:        &nansen.DexTradesResponse{Data: make([]nansen.DexTrade, 3)},
-		WalletCount: 4,
-		TokenCount:  5,
+		MinSignalUSD: 1000,
+		Seed:         &nansen.DexTradesResponse{Data: make([]nansen.DexTrade, 3)},
+		WalletCount:  4,
+		TokenCount:   5,
 		RankedWallets: []score.WalletScore{
 			{Address: "wallet-a", Label: "Smart Trader", Score: 0.9},
 			{Address: "wallet-b", Label: "", Score: 0.3},
@@ -67,13 +68,30 @@ func TestWriteReport_AllVerdicts(t *testing.T) {
 				}},
 			},
 			{
-				// FlowAvailable: false here (rather than on the WEAK token
-				// below) so the "no flow-intelligence data" note is still
-				// exercised on a row that actually renders — WEAK tokens
-				// are collapsed behind the disclosure line and never reach
-				// the template's per-token block.
 				Key: "ethereum:tok-confirmed", Symbol: "CONF", Name: "Confirmed Token",
 				Verdict: score.VerdictConfirmed, N: 5, M: 5,
+				SmartTraderNetFlowUSD: 300, ExchangeNetFlowUSD: -200,
+				FlowAvailable: true, ExchangeObserved: true,
+				Clusters: []score.ClusterGroup{{
+					Members: []score.BuyerInput{{Address: "wallet-a", PnLUSD: 1000, WinRate: 0.6}},
+				}},
+			},
+			{
+				// Flow row present, exchange side empty: the exit check had
+				// nothing to test, so the row must say so rather than show +$0.
+				Key: "solana:tok-noexch", Symbol: "NOEXCH", Name: "Unlisted Token",
+				Verdict: score.VerdictIndependent, N: 4, M: 4,
+				SmartTraderNetFlowUSD: 300, ExchangeNetFlowUSD: 0,
+				FlowAvailable: true, ExchangeObserved: false,
+				Clusters: []score.ClusterGroup{{
+					Members: []score.BuyerInput{{Address: "wallet-a", PnLUSD: 1000, WinRate: 0.6}},
+				}},
+			},
+			{
+				// No flow row at all. Rendered (not WEAK) so the note reaches
+				// the template's per-token block.
+				Key: "solana:tok-noflow", Symbol: "NOFLOW", Name: "No Flow Token",
+				Verdict: score.VerdictIndependent, N: 3, M: 3,
 				FlowAvailable: false,
 				Clusters: []score.ClusterGroup{{
 					Members: []score.BuyerInput{{Address: "wallet-a", PnLUSD: 1000, WinRate: 0.6}},
@@ -123,10 +141,13 @@ func TestWriteReport_AllVerdicts(t *testing.T) {
 		"funder is itself a buyer: wallet-a",
 		"no funder data (not evidence of independence)",
 		"no flow-intelligence data for this token",
+		"INDEPENDENT",
+		"no exchange address has touched this token",
 		"realkingof.sol",
-		// docs/DESIGN.md Output: N < 3 tokens are collapsed behind a
-		// disclosure line, not rendered as a WEAK row.
-		"1 tokens had fewer than 3 smart-money buyers",
+		// docs/DESIGN.md Output: tokens too thin to judge are collapsed
+		// behind a disclosure line naming both floors, not rendered as rows.
+		"1 tokens had too little smart-money buying to judge",
+		"under $1000 bought",
 		// the census headline sentence, not just a raw stats box.
 		"2 of 4 top smart-money wallets were funded by just 1 address",
 	} {

@@ -23,9 +23,13 @@ exchange, so this is not the usual "everyone withdrew from Binance" artefact.
 The exit signal — smart traders buying while the token flows into exchanges —
 fired on 32 of 330 tokens.
 
-Of the 56 tokens with enough buyers to judge, 9 came back `CONCENTRATED` and 15
-`CONFIRMED`. The tool clears signals as well as flagging them; that is what
-makes a flag worth reading.
+Of the 50 tokens it could judge, 8 came back `CONCENTRATED` and 7 `CONFIRMED`.
+The tool clears signals as well as flagging them; that is what makes a flag
+worth reading.
+
+`CONFIRMED` means a signal survived both checks. It does not mean the token
+is a good buy: the seven that pass are mostly days-old small caps, and the
+tool knows nothing about their fundamentals.
 
 Built with the [Nansen API](https://docs.nansen.ai/) for the Meridian Buildathon.
 
@@ -88,10 +92,21 @@ addresses. Smart traders net buying while exchanges net receive is accumulation
 into someone else's distribution.
 
 **Verdict.** One categorical label per token. On independence: `THIN` when every
-buyer collapses to one funder, `CONCENTRATED` when some of the apparent
-independence is illusory, `CONFIRMED` when no two buyers share a funder at all.
-The exit signal then overlays: `CONFIRMED` becomes `DISTRIBUTING`, and
-`THIN`/`CONCENTRATED` become `BOTH`.
+buyer shares one funder, `CONCENTRATED` when some of them do, `CONFIRMED` when
+no two buyers share a funder *and* the exit check ran clean. The exit signal
+overlays: `CONFIRMED` becomes `DISTRIBUTING`, and `THIN`/`CONCENTRATED` become
+`BOTH`.
+
+Two verdicts exist to stop missing data from passing a check it never faced.
+`UNVERIFIED`: some buyers' funders were never fetched, so "no shared funder"
+is unproven. `INDEPENDENT`: the buyers are independent, but no exchange
+address has ever touched the token, so there was no exit to check — its
+exchange flow renders as `—`, never as a reassuring `+$0`.
+
+A token also needs at least `--min-signal-usd` (default $1,000) of smart-money
+buying before its buyers are judged. Four wallets spending $156 between them
+is noise, and running the independence test on noise produces `CONFIRMED`
+rows that read like endorsements.
 
 Every verdict renders next to the raw signed flow numbers, so you can disagree
 with the label by reading its inputs. Tokens with fewer than three buyers carry
@@ -110,6 +125,7 @@ because one wallet accumulating into exchange outflows is as damning as five.
 | `--allow-expensive` | | permit endpoints costing more than 1 credit |
 | `--concurrency` | 8 | worker pool size |
 | `--max-wallets` | 0 | cap enrichment to the N highest-value seed wallets (0 = all) |
+| `--min-signal-usd` | 1000 | smart-money buy volume a token needs before its buyers are judged |
 | `--rate-per-sec` / `--rate-per-min` | 12 / 250 | kept under the Free tier's 15 / 300 |
 
 ## Layout

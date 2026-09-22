@@ -41,6 +41,9 @@ type Pipeline struct {
 	Concurrency int
 	DateFrom    string
 	DateTo      string
+	// MinSignalUSD is the smart-money buy volume a token needs in the seed
+	// before its buyers are tested for independence (score.MinSignalUSD).
+	MinSignalUSD float64
 	// MaxWallets caps the enrichment universe to the N highest-conviction
 	// wallets in the seed (0 = no cap). Used to look at real data cheaply
 	// while iterating, instead of fanning out over the whole seed.
@@ -96,10 +99,11 @@ func New(client *nansen.Client, concurrency int) *Pipeline {
 		concurrency = 1
 	}
 	return &Pipeline{
-		Client:      client,
-		Concurrency: concurrency,
-		DateFrom:    DefaultDateFrom,
-		DateTo:      DefaultDateTo,
+		Client:       client,
+		Concurrency:  concurrency,
+		DateFrom:     DefaultDateFrom,
+		DateTo:       DefaultDateTo,
+		MinSignalUSD: score.MinSignalUSD,
 	}
 }
 
@@ -227,6 +231,9 @@ type Result struct {
 	WalletCount   int
 	TokenCount    int
 	RankedWallets []score.WalletScore
+	// MinSignalUSD is the signal floor the verdicts were decided under, kept
+	// so the report can say why a token was left unjudged.
+	MinSignalUSD float64
 
 	// TokenReports is the product: one falsifier verdict per token,
 	// sorted most-concerning first. See docs/DESIGN.md's Output section.
@@ -255,7 +262,12 @@ type TokenReport struct {
 	SmartTraderNetFlowUSD float64
 	ExchangeNetFlowUSD    float64
 	FlowAvailable         bool
-	LiquidityUSD          *float64
+	// ExchangeObserved is false when no exchange address touched the token;
+	// its exchange flow then renders as absent, never as a confident $0.
+	ExchangeObserved bool
+	// SmartBoughtUSD is what the seed's smart-money wallets spent buying it.
+	SmartBoughtUSD float64
+	LiquidityUSD   *float64
 
 	Clusters []score.ClusterGroup
 }
@@ -272,6 +284,18 @@ type TokenReport struct {
 // behind a disclosure line by the report rather than occupying rows in
 // the main table; EXIT_ONLY, despite also having N < 3, is never
 // collapsed — see docs/DESIGN.md's Output section.
+// judgeableBuyers is the buyer count the independence verdict gets to see.
+// Below the signal floor there is no smart-money signal to falsify, so it
+// reports zero buyers and the verdict is withheld exactly as it is under
+// three. The exit signal is unaffected: it reads Nansen's own cohort flow,
+// not the seed's purchase volume.
+func judgeableBuyers(n int, boughtUSD, minSignalUSD float64) int {
+	if boughtUSD < minSignalUSD {
+		return 0
+	}
+	return n
+}
+
 func verdictSeverity(v score.Verdict) int {
 	switch v {
 	case score.VerdictBoth:
@@ -284,13 +308,16 @@ func verdictSeverity(v score.Verdict) int {
 		return 3
 	case score.VerdictConfirmed:
 		return 4
+	case score.VerdictIndependent:
+		// Passed the independence test only; a weaker claim than CONFIRMED.
+		return 5
 	case score.VerdictUnverified:
 		// A row that says "we don't know" ranks below every verdict that
 		// actually concluded something, confirmed included — it is a
 		// weaker claim than CONFIRMED, not a stronger one.
-		return 5
-	default: // WEAK
 		return 6
+	default: // WEAK
+		return 7
 	}
 }
 
@@ -417,6 +444,7 @@ func (p *Pipeline) Run(ctx context.Context) (*Result, error) {
 			ti.SmartTraderNetFlowUSD = fi.SmartTraderNetFlowUSD
 			ti.ExchangeNetFlowUSD = fi.ExchangeNetFlowUSD
 			ti.FlowAvailable = true
+			ti.ExchangeObserved = fi.ExchangeAvgFlowUSD != nil
 		}
 		if r := tokenResults[k]; r != nil && r.info != nil {
 			// tgm/token-information carries the real name and symbol; the
@@ -488,9 +516,11 @@ func (p *Pipeline) Run(ctx context.Context) (*Result, error) {
 	// tokenBuyers: reverse index from token key to the (limited) wallets
 	// that bought it, the seed input for each token's cluster collapse.
 	tokenBuyers := map[string][]string{}
+	tokenBoughtUSD := map[string]float64{}
 	for addr, agg := range walletAggs {
 		seenTok := map[string]bool{}
 		for _, bt := range agg.boughtTokens {
+			tokenBoughtUSD[bt.TokenKey] += bt.TradeValueUSD
 			if seenTok[bt.TokenKey] {
 				continue
 			}
@@ -517,7 +547,9 @@ func (p *Pipeline) Run(ctx context.Context) (*Result, error) {
 		}
 		cr := score.Cluster(buyers)
 		ti := tokenMeta[k]
-		verdict := score.DecideVerdict(cr.N, cr.M, cr.Covered, ti.SmartTraderNetFlowUSD, ti.ExchangeNetFlowUSD, ti.FlowAvailable)
+		verdictN := judgeableBuyers(cr.N, tokenBoughtUSD[k], p.MinSignalUSD)
+		exitCheckable := ti.FlowAvailable && ti.ExchangeObserved
+		verdict := score.DecideVerdict(verdictN, cr.M, cr.Covered, ti.SmartTraderNetFlowUSD, ti.ExchangeNetFlowUSD, exitCheckable)
 
 		symbol := ti.Symbol
 		if symbol == "" {
@@ -536,6 +568,8 @@ func (p *Pipeline) Run(ctx context.Context) (*Result, error) {
 			SmartTraderNetFlowUSD: ti.SmartTraderNetFlowUSD,
 			ExchangeNetFlowUSD:    ti.ExchangeNetFlowUSD,
 			FlowAvailable:         ti.FlowAvailable,
+			ExchangeObserved:      ti.ExchangeObserved,
+			SmartBoughtUSD:        tokenBoughtUSD[k],
 			LiquidityUSD:          ti.LiquidityUSD,
 			Clusters:              cr.Clusters,
 		})
@@ -565,6 +599,7 @@ func (p *Pipeline) Run(ctx context.Context) (*Result, error) {
 	})
 
 	return &Result{
+		MinSignalUSD:  p.MinSignalUSD,
 		Seed:          seed,
 		Wallets:       wallets,
 		Tokens:        tokens,

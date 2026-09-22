@@ -25,8 +25,10 @@ Measured over the full seed (`out/calls.jsonl`, 1019 calls, 0 failures):
 - `exchange_net_flow_usd` is populated for 198 of 330 tokens (60%).
 - The exit signal fires on 32 of 330 tokens (10%) — rare enough to be worth
   flagging, common enough to be worth computing.
-- Of the 56 tokens with at least 3 buyers: 9 `CONCENTRATED`, 15 `CONFIRMED`,
-  32 `DISTRIBUTING`, 0 `UNVERIFIED` once funder coverage is complete.
+- Of the 50 tokens that clear both floors: 8 `CONCENTRATED`, 7 `CONFIRMED`,
+  3 `INDEPENDENT`, 32 `DISTRIBUTING`, 0 `UNVERIFIED` once funder coverage is
+  complete. Before the exit-data and signal-floor rules below, the same data
+  produced 15 `CONFIRMED`; eight of those were passes on checks that never ran.
 
 The pitch is not hypothetical; these numbers are the demo.
 
@@ -104,6 +106,16 @@ being deposited to exchanges at the same time.
 Always render both raw signed numbers next to the verdict. A reader must be
 able to disagree with the label by looking at the inputs.
 
+**A zero exchange flow is not a clean exit check.** `exchange_net_flow_usd`
+reads `0.0` both when exchanges saw flow that netted out and when no exchange
+address has ever touched the token — the usual case for a days-old small
+cap. The only field that tells them apart is `exchange_avg_flow_usd`, which
+is `null` in the second case (129 of 330 tokens in the full seed; 3 more are
+genuine netted-out zeros). `exchange_wallet_count` reads 0 even when there
+was flow and cannot be used. With no exchange side observed, the exit check
+has nothing to test: the exchange column renders `—`, and the token cannot be
+`CONFIRMED`.
+
 ## Verdict
 
 The first version of this table had a hole: `N >= 3, M == 2` satisfied neither
@@ -118,7 +130,9 @@ Independence, on tokens with `N >= 3` buyers:
 | --- | --- | --- |
 | `THIN` | `M == 1` | every buyer shares one funding source |
 | `CONCENTRATED` | `1 < M < N` | some of the apparent independence is illusory |
-| `CONFIRMED` | `M == N` | no two buyers share a funder |
+| `CONFIRMED` | `M == N`, full coverage, exit check ran | no two buyers share a funder, and no distribution |
+| `INDEPENDENT` | `M == N`, full coverage, no exchange side | independent buyers; no exit to check |
+| `UNVERIFIED` | `M == N`, partial coverage | "no shared funder" is unproven |
 
 Then the distribution overlay: if the exit signal fires, `CONFIRMED` becomes
 `DISTRIBUTING`, and `THIN`/`CONCENTRATED` become `BOTH`.
@@ -129,6 +143,14 @@ between any two buyers.
 
 Tokens with `N < 3` buyers carry no independence signal at all; see Output for
 how they are presented.
+
+**Signal floor.** A token also needs `--min-signal-usd` (default $1,000) of
+smart-money buying in the seed before its buyers are judged. The real seed
+had `RAFFLE` bought by four wallets for $156 in total, which came out
+`CONFIRMED` and read like an endorsement of noise. Below the floor the token
+is treated exactly like one with fewer than three buyers: no independence
+verdict, exit signal still evaluated. $1,000 is a judgement call, not a
+derived constant, which is why it is a flag.
 
 Verdicts are categorical. They are not a 0..1 score, because the previous
 version's continuous token score saturated — all 20 rendered tokens scored

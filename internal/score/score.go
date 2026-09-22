@@ -70,6 +70,11 @@ type TokenInput struct {
 	// DISTRIBUTING verdict (see verdict.go).
 	FlowAvailable bool
 
+	// ExchangeObserved is true only when the flow row shows exchange
+	// addresses actually touched the token (exchange_avg_flow_usd non-null).
+	// A zero exchange net flow means nothing without it.
+	ExchangeObserved bool
+
 	// LiquidityUSD comes from tgm/token-information; nil if unavailable.
 	LiquidityUSD *float64
 }

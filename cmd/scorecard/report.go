@@ -65,6 +65,7 @@ type reportData struct {
 	SharedFunders   int
 	CensusHeadline  string
 	WeakTokenCount  int
+	MinSignal       string
 	TopFunders      []reportFunderRow
 	Wallets         []reportWalletRow
 	Tokens          []reportTokenRow
@@ -263,7 +264,7 @@ const reportTemplate = `<!DOCTYPE html>
           <div><span class="verdict {{.VerdictClass}}">{{.Verdict}}</span></div>
           <div><span class="verdict {{.IndependenceClass}}">{{.Independence}}</span></div>
           <div class="{{.SmartFlowClass}}">{{.SmartFlow}}</div>
-          <div class="{{.ExchFlowClass}}">{{.ExchFlow}}</div>
+          <div class="{{.ExchFlowClass}}">{{if .ExchFlow}}{{.ExchFlow}}{{else}}&mdash;{{end}}</div>
           <div>{{if .Liquidity}}{{.Liquidity}}{{else}}&mdash;{{end}}</div>
         </div>
       </summary>
@@ -292,7 +293,7 @@ const reportTemplate = `<!DOCTYPE html>
     {{end}}
   </div>
   {{if .WeakTokenCount}}
-  <div style="color:var(--muted); font-size:12px; margin-top:10px;">{{.WeakTokenCount}} tokens had fewer than 3 smart-money buyers &mdash; no independence signal.</div>
+  <div style="color:var(--muted); font-size:12px; margin-top:10px;">{{.WeakTokenCount}} tokens had too little smart-money buying to judge &mdash; fewer than 3 buyers or under {{.MinSignal}} bought &mdash; and no exit signal.</div>
   {{end}}
 </section>
 
@@ -354,7 +355,7 @@ func verdictClass(v score.Verdict) string {
 		return "v-warn"
 	case score.VerdictConfirmed:
 		return "v-good"
-	default:
+	default: // CONCENTRATED, INDEPENDENT, UNVERIFIED, WEAK
 		return "v-flat"
 	}
 }
@@ -475,6 +476,7 @@ func writeReport(path string, result *pipeline.Result) error {
 		DistinctFunders: result.Census.DistinctFunders,
 		SharedFunders:   result.Census.SharedFunders,
 		CensusHeadline:  censusHeadline(result.Census, result.WalletCount),
+		MinSignal:       fmt.Sprintf("$%.0f", result.MinSignalUSD),
 	}
 
 	for i, fc := range result.Census.TopFunders {
@@ -531,8 +533,15 @@ func writeReport(path string, result *pipeline.Result) error {
 			ExchFlowClass:     exchFlowClass(tr.ExchangeNetFlowUSD),
 			Liquidity:         formatUSD(tr.LiquidityUSD),
 		}
-		if !tr.FlowAvailable {
+		switch {
+		case !tr.FlowAvailable:
 			row.FlowNote = "no flow-intelligence data for this token; the exit signal cannot fire"
+			row.ExchFlow, row.ExchFlowClass = "", ""
+		case !tr.ExchangeObserved:
+			// No exchange address touched the token. A "+$0" here would read
+			// as "checked, no inflow" when nothing was there to check.
+			row.FlowNote = "no exchange address has touched this token; the exit check had nothing to test"
+			row.ExchFlow, row.ExchFlowClass = "", ""
 		}
 		for _, c := range tr.Clusters {
 			cr := reportClusterRow{Size: len(c.Members), FunderDesc: funderDescription(c)}

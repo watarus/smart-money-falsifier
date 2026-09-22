@@ -5,11 +5,11 @@ package nansen
 
 // Endpoint paths (relative to https://api.nansen.ai/api/v1/).
 const (
-	PathSmartMoneyDexTrades       = "smart-money/dex-trades"
-	PathProfilerPnLSummary        = "profiler/address/pnl-summary"
-	PathProfilerRelatedWallets    = "profiler/address/related-wallets"
-	PathTGMFlowIntelligence       = "tgm/flow-intelligence"
-	PathTGMTokenInformation       = "tgm/token-information"
+	PathSmartMoneyDexTrades    = "smart-money/dex-trades"
+	PathProfilerPnLSummary     = "profiler/address/pnl-summary"
+	PathProfilerRelatedWallets = "profiler/address/related-wallets"
+	PathTGMFlowIntelligence    = "tgm/flow-intelligence"
+	PathTGMTokenInformation    = "tgm/token-information"
 )
 
 // CreditCost is the declared credit cost per call for each endpoint, per
@@ -25,8 +25,8 @@ var CreditCost = map[string]int{
 // --- smart-money/dex-trades ---
 
 type DexTradesRequest struct {
-	Chains     []string       `json:"chains"`
-	Pagination PaginationReq  `json:"pagination"`
+	Chains     []string      `json:"chains"`
+	Pagination PaginationReq `json:"pagination"`
 }
 
 type PaginationReq struct {
@@ -35,8 +35,8 @@ type PaginationReq struct {
 }
 
 type DexTradesResponse struct {
-	Data       []DexTrade      `json:"data"`
-	Pagination PaginationResp  `json:"pagination"`
+	Data       []DexTrade     `json:"data"`
+	Pagination PaginationResp `json:"pagination"`
 }
 
 type PaginationResp struct {
@@ -46,31 +46,31 @@ type PaginationResp struct {
 }
 
 type DexTrade struct {
-	Chain               string  `json:"chain"`
-	BlockTimestamp      string  `json:"block_timestamp"`
-	TransactionHash      string  `json:"transaction_hash"`
-	TraderAddress        string  `json:"trader_address"`
-	TraderAddressLabel   string  `json:"trader_address_label"`
-	TokenBoughtAddress   string  `json:"token_bought_address"`
-	TokenSoldAddress     string  `json:"token_sold_address"`
-	TokenBoughtAmount    float64 `json:"token_bought_amount"`
-	TokenSoldAmount      float64 `json:"token_sold_amount"`
-	TokenBoughtSymbol    string  `json:"token_bought_symbol"`
-	TokenSoldSymbol      string  `json:"token_sold_symbol"`
-	TokenBoughtAgeDays   *int    `json:"token_bought_age_days"`
-	TokenSoldAgeDays     *int    `json:"token_sold_age_days"`
+	Chain                string   `json:"chain"`
+	BlockTimestamp       string   `json:"block_timestamp"`
+	TransactionHash      string   `json:"transaction_hash"`
+	TraderAddress        string   `json:"trader_address"`
+	TraderAddressLabel   string   `json:"trader_address_label"`
+	TokenBoughtAddress   string   `json:"token_bought_address"`
+	TokenSoldAddress     string   `json:"token_sold_address"`
+	TokenBoughtAmount    float64  `json:"token_bought_amount"`
+	TokenSoldAmount      float64  `json:"token_sold_amount"`
+	TokenBoughtSymbol    string   `json:"token_bought_symbol"`
+	TokenSoldSymbol      string   `json:"token_sold_symbol"`
+	TokenBoughtAgeDays   *int     `json:"token_bought_age_days"`
+	TokenSoldAgeDays     *int     `json:"token_sold_age_days"`
 	TokenBoughtMarketCap *float64 `json:"token_bought_market_cap"`
 	TokenSoldMarketCap   *float64 `json:"token_sold_market_cap"`
 	TokenBoughtFDV       *float64 `json:"token_bought_fdv"`
 	TokenSoldFDV         *float64 `json:"token_sold_fdv"`
-	TradeValueUSD        float64 `json:"trade_value_usd"`
+	TradeValueUSD        float64  `json:"trade_value_usd"`
 }
 
 // --- profiler/address/pnl-summary ---
 
 type PnLSummaryRequest struct {
-	Address string      `json:"address"`
-	Chain   string      `json:"chain"`
+	Address string       `json:"address"`
+	Chain   string       `json:"chain"`
 	Date    DateRangeReq `json:"date"`
 }
 
@@ -80,13 +80,13 @@ type DateRangeReq struct {
 }
 
 type PnLSummaryResponse struct {
-	Pagination        PaginationResp `json:"pagination"`
-	Top5Tokens        []Top5Token    `json:"top5_tokens"`
-	TradedTokenCount  int            `json:"traded_token_count"`
-	TradedTimes       int            `json:"traded_times"`
-	RealizedPnLUSD    float64        `json:"realized_pnl_usd"`
-	RealizedPnLPercent float64       `json:"realized_pnl_percent"`
-	WinRate           float64        `json:"win_rate"`
+	Pagination         PaginationResp `json:"pagination"`
+	Top5Tokens         []Top5Token    `json:"top5_tokens"`
+	TradedTokenCount   int            `json:"traded_token_count"`
+	TradedTimes        int            `json:"traded_times"`
+	RealizedPnLUSD     float64        `json:"realized_pnl_usd"`
+	RealizedPnLPercent float64        `json:"realized_pnl_percent"`
+	WinRate            float64        `json:"win_rate"`
 }
 
 type Top5Token struct {
@@ -105,8 +105,8 @@ type RelatedWalletsRequest struct {
 }
 
 type RelatedWalletsResponse struct {
-	Pagination PaginationResp   `json:"pagination"`
-	Data       []RelatedWallet  `json:"data"`
+	Pagination PaginationResp  `json:"pagination"`
+	Data       []RelatedWallet `json:"data"`
 }
 
 type RelatedWallet struct {
@@ -146,11 +146,16 @@ type FlowIntelligence struct {
 	SmartTraderAvgFlowUSD   float64 `json:"smart_trader_avg_flow_usd"`
 	SmartTraderWalletCount  int     `json:"smart_trader_wallet_count"`
 	ExchangeNetFlowUSD      float64 `json:"exchange_net_flow_usd"`
-	ExchangeAvgFlowUSD      float64 `json:"exchange_avg_flow_usd"`
-	ExchangeWalletCount     int     `json:"exchange_wallet_count"`
-	FreshWalletsNetFlowUSD  float64 `json:"fresh_wallets_net_flow_usd"`
-	FreshWalletsAvgFlowUSD  float64 `json:"fresh_wallets_avg_flow_usd"`
-	FreshWalletsWalletCount int     `json:"fresh_wallets_wallet_count"`
+	// ExchangeAvgFlowUSD is a pointer because null is the only field that
+	// separates "no exchange address touched this token" from "exchanges
+	// saw flow that happened to net to zero": the net flow reads 0.0 in both
+	// cases, and exchange_wallet_count reads 0 even when there was flow.
+	// Across the full seed it is null on 129 of 330 tokens.
+	ExchangeAvgFlowUSD      *float64 `json:"exchange_avg_flow_usd"`
+	ExchangeWalletCount     int      `json:"exchange_wallet_count"`
+	FreshWalletsNetFlowUSD  float64  `json:"fresh_wallets_net_flow_usd"`
+	FreshWalletsAvgFlowUSD  float64  `json:"fresh_wallets_avg_flow_usd"`
+	FreshWalletsWalletCount int      `json:"fresh_wallets_wallet_count"`
 }
 
 // --- tgm/token-information ---

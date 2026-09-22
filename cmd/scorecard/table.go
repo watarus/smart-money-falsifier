@@ -190,6 +190,15 @@ func censusHeadline(census score.FunderCensus, walletCount int) string {
 		traced, walletCount, funders, noun, strings.Join(parts, ", "), tail)
 }
 
+// exchFlowCell renders the exchange column. An exchange side nobody touched
+// prints as absent: "+$0" would claim a check that never ran.
+func exchFlowCell(tr pipeline.TokenReport) string {
+	if !tr.FlowAvailable || !tr.ExchangeObserved {
+		return colorize(fmt.Sprintf("%14s", "—"), ansiGray)
+	}
+	return colorize(fmt.Sprintf("%14s", signedUSD(tr.ExchangeNetFlowUSD)), exchFlowColor(tr.ExchangeNetFlowUSD))
+}
+
 func printTable(result *pipeline.Result) {
 	fmt.Println(colorize(censusHeadline(result.Census, result.WalletCount), ansiBold))
 
@@ -211,10 +220,10 @@ func printTable(result *pipeline.Result) {
 			colorize(fmt.Sprintf("%-12s", verdictLabel(tr.Verdict)), verdictColor(tr.Verdict)),
 			independenceLabel(tr),
 			colorize(fmt.Sprintf("%14s", signedUSD(tr.SmartTraderNetFlowUSD)), smartFlowColor(tr.SmartTraderNetFlowUSD)),
-			colorize(fmt.Sprintf("%14s", signedUSD(tr.ExchangeNetFlowUSD)), exchFlowColor(tr.ExchangeNetFlowUSD)))
+			exchFlowCell(tr))
 	}
 	if weak > 0 {
-		fmt.Println(colorize(fmt.Sprintf("%d tokens had fewer than 3 smart-money buyers — no independence signal", weak), ansiGray))
+		fmt.Println(colorize(fmt.Sprintf("%d tokens had too little smart-money buying to judge — fewer than 3 buyers or under $%.0f bought — and no exit signal", weak, result.MinSignalUSD), ansiGray))
 	}
 
 	fmt.Println()

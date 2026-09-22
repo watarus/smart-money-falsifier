@@ -71,11 +71,43 @@ func TestDecideVerdict_Distributing(t *testing.T) {
 
 func TestDecideVerdict_MissingFlowNeverFiresDistribution(t *testing.T) {
 	// Even though the signed values look like a distribution firing, no
-	// flow data means the signal must not fire, so CONFIRMED (M==N, full
-	// coverage) stays CONFIRMED rather than becoming DISTRIBUTING.
+	// flow data means the signal must not fire — and must not be cleared
+	// either. This test used to expect CONFIRMED, which is the bug: a token
+	// no exchange ever touched passed an exit check that never ran.
 	got := DecideVerdict(4, 4, 4, 100, 100, false)
-	if got != VerdictConfirmed {
-		t.Fatalf("expected missing flow data to leave CONFIRMED alone, got %v", got)
+	if got != VerdictIndependent {
+		t.Fatalf("missing exchange data must yield INDEPENDENT, never CONFIRMED or DISTRIBUTING; got %v", got)
+	}
+}
+
+func TestDecideVerdict_ExitCheckGatesConfirmed(t *testing.T) {
+	// Same buyers, same full coverage: only whether the exchange side was
+	// observed decides between CONFIRMED and INDEPENDENT.
+	tests := []struct {
+		name    string
+		hasFlow bool
+		want    Verdict
+	}{
+		{"exchange side observed, no inflow", true, VerdictConfirmed},
+		{"no exchange address touched the token", false, VerdictIndependent},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := DecideVerdict(4, 4, 4, 500, 0, tt.hasFlow); got != tt.want {
+				t.Fatalf("got %v want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDecideVerdict_MissingExchangeDataLeavesCollapseStanding(t *testing.T) {
+	// A shared funder is a positive observation; the absent exit check
+	// weakens only the negative claim CONFIRMED makes.
+	if got := DecideVerdict(4, 2, 4, 500, 0, false); got != VerdictConcentrated {
+		t.Fatalf("got %v want CONCENTRATED", got)
+	}
+	if got := DecideVerdict(4, 1, 4, 500, 0, false); got != VerdictThin {
+		t.Fatalf("got %v want THIN", got)
 	}
 }
 

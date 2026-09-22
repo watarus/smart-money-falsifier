@@ -32,7 +32,22 @@ const (
 	// damning as five. Callers render this token in the main table with
 	// its independence column reading "—" rather than a verdict.
 	VerdictExitOnly Verdict = "EXIT_ONLY"
+
+	// VerdictIndependent is the independence half of CONFIRMED without the
+	// exit half: every buyer was checked and no two share a funder, but
+	// there was no exchange flow to check for distribution. CONFIRMED
+	// claims the token survived both tests; when the exit test could not
+	// run it survived one, and saying otherwise lets absent data pass a
+	// check it never faced — the exit-signal twin of UNVERIFIED.
+	VerdictIndependent Verdict = "INDEPENDENT"
 )
+
+// MinSignalUSD is the default smart-money buy volume below which a token is
+// not treated as a smart-money signal at all. Four wallets buying $156
+// between them is noise, and running the independence test on noise
+// produces CONFIRMED rows that read as endorsements. The value is a
+// judgement call, not a derived constant; the CLI exposes it as a flag.
+const MinSignalUSD = 1000
 
 // Distributing reports whether the exit signal fires: smart traders net
 // buying while exchange-labelled addresses are simultaneously net
@@ -106,6 +121,13 @@ func DecideVerdict(n, m, covered int, smartTraderNetFlowUSD, exchangeNetFlowUSD 
 		}
 		if dist {
 			return VerdictDistributing
+		}
+		// hasFlow means the exchange side was actually observed, not just
+		// that a flow row came back: a token no exchange address has ever
+		// touched returns a row with a zero net flow, and treating that zero
+		// as "no inflow" would clear it of a check it never faced.
+		if !hasFlow {
+			return VerdictIndependent
 		}
 		return VerdictConfirmed
 	}
