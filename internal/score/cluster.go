@@ -122,7 +122,7 @@ func Cluster(buyers []BuyerInput) ClusterResult {
 	}
 
 	// A buyer's funder that is itself another buyer's address collapses
-	// the two (one actor wearing two hats: funder, then funded).
+	// the two (funder and funded share one funding source).
 	for i, b := range buyers {
 		for _, f := range b.Funders {
 			if j, ok := idx[f.Address]; ok && j != i {

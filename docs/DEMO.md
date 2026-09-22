@@ -14,7 +14,7 @@ Terminal at a large font, dark theme, window cropped to the text.
 
 Not "here is a dashboard". This:
 
-> Seven smart-money wallets bought this token. They are one person.
+> These "independent" smart-money buyers were funded from the same address.
 
 Everything else is supporting evidence. If a viewer with the sound off comes
 away with that sentence, the video worked.
@@ -39,15 +39,17 @@ Caption as the token table renders:
 
 > "This one asks whether the signal is real."
 
-Let the verdict column land. `THIN`, `DISTRIBUTING`, `CONFIRMED` in colour
-against real token symbols.
+Let the verdict column land. `CONCENTRATED`, `DISTRIBUTING`, `CONFIRMED` in
+colour against real token symbols.
 
 **0:18–0:35 — the collapse (the money shot)**
 
-Expand one `THIN` row. Show `N → M`: several distinct smart-money buyers
-resolving to one cluster, with the shared funder named.
+Expand one `CONCENTRATED` row. Show `N → M`: several distinct smart-money
+buyers resolving to fewer funding sources, with the shared funder named.
+Prefer a small-cap token over USDC/ETH/SOL — "smart money bought USDC" was
+never a signal, so collapsing it proves little.
 
-> "Seven independent buyers. One first funder. One actor, seven addresses."
+> "Seven 'independent' buyers. One first funder."
 
 Hold this. It is the whole video. If the run surfaces the `realkingof.sol`
 cluster — 10 wallets, one funder — use that row.

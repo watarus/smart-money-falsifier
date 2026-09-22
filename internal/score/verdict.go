@@ -49,7 +49,7 @@ func Distributing(smartTraderNetFlowUSD, exchangeNetFlowUSD float64, hasFlow boo
 // DecideVerdict applies docs/DESIGN.md's Verdict rules. The N >= 3 buyer
 // floor gates the independence verdict only, never the exit signal:
 //
-//	THIN         M == 1        one actor wearing N hats
+//	THIN         M == 1        every buyer shares one funding source
 //	CONCENTRATED 1 < M < N      some of the apparent independence is illusory
 //	CONFIRMED    M == N, full coverage      no two buyers share a funder
 //	UNVERIFIED   M == N, partial coverage   that claim was never fully checked

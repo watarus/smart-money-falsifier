@@ -128,7 +128,7 @@ func TestWriteReport_AllVerdicts(t *testing.T) {
 		// disclosure line, not rendered as a WEAK row.
 		"1 tokens had fewer than 3 smart-money buyers",
 		// the census headline sentence, not just a raw stats box.
-		"2 of 4 top smart-money wallets trace back to just 1 person",
+		"2 of 4 top smart-money wallets were funded by just 1 address",
 	} {
 		if !strings.Contains(html, want) {
 			t.Errorf("report missing expected content %q", want)

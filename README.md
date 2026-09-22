@@ -6,16 +6,18 @@ opposite: it tries to **falsify** the signal before you act on it.
 
 A "seven smart-money wallets are buying this" headline lies in two ways:
 
-- **The buyers are not independent.** Walk each wallet's funder graph and the
-  seven collapse into one actor who split size across seven addresses.
+- **The buyers may not be independent.** Walk each wallet's funder graph and
+  the seven may turn out to share one or two funding sources — which could
+  be one trader splitting size, or a service that funds many wallets. Either
+  way it is not seven independent decisions.
 - **The accumulation is someone else's exit.** Smart traders are net buying
   while the token is simultaneously flowing *into* exchange addresses.
 
 Both are only visible because Nansen labels addresses and exposes funder
 relations. No block explorer gives you this.
 
-Over the full Smart Money feed, **67 of the 172 top smart-money wallets traced
-back to just 13 funders** — `realkingof.sol` funded 20 of them, an address
+Over the full Smart Money feed, **67 of the 172 top smart-money wallets were
+funded by just 13 addresses** — `realkingof.sol` funded 20 of them, an address
 Nansen labels `Token Millionaire` funded 14, `kiing.sol` funded 7. None is an
 exchange, so this is not the usual "everyone withdrew from Binance" artefact.
 The exit signal — smart traders buying while the token flows into exchanges —

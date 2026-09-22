@@ -6,8 +6,8 @@ opposite: it tries to **falsify** the signal before you act on it.
 
 Two ways a "seven smart-money wallets are buying this" headline lies:
 
-1. **The buyers are not independent.** Walk each wallet's funder graph and the
-   seven collapse into one actor who split size across seven addresses.
+1. **The buyers may not be independent.** Walk each wallet's funder graph and
+   the seven may share one or two funding sources.
 2. **The accumulation is someone else's exit.** Smart traders are net buying
    while the token is simultaneously flowing *into* exchanges.
 
@@ -18,7 +18,7 @@ relations. No block explorer gives you this.
 
 Measured over the full seed (`out/calls.jsonl`, 1019 calls, 0 failures):
 
-- **67 of the 172 wallets trace back to just 13 funders**: `realkingof.sol`
+- **67 of the 172 wallets were funded by just 13 addresses**: `realkingof.sol`
   funded 20, an address Nansen labels `Token Millionaire` funded 14,
   `kiing.sol` funded 7, and ten more funded between 2 and 5 each. None is an
   exchange, so this is not the usual "everyone withdrew from Binance" artefact.
@@ -58,8 +58,14 @@ For each token, take the set of seed wallets that **bought** it.
    funder is itself another buyer of the same token.
 3. `N` = distinct buying wallets. `M` = distinct clusters after the union.
 
-`N → M` is the headline number. `N = 7, M = 1` means one actor wearing seven
-hats. `N = 7, M = 7` means seven independent decisions.
+`N → M` is the headline number. `N = 7, M = 1` means all seven buyers were
+funded from one source. `N = 7, M = 7` means no two share a funder.
+
+**What a shared funder does not prove.** Two wallets with the same First
+Funder may be one trader splitting size — or a payout service, a launchpad,
+or one person funding friends. The data shows the funding link, not the
+identity behind it. Output and copy must claim only the link: "funded by
+the same address", never "the same person".
 
 A wallet with no funder data is its own cluster — absent data must never
 manufacture a collapse.
@@ -110,7 +116,7 @@ Independence, on tokens with `N >= 3` buyers:
 
 | verdict | condition | meaning |
 | --- | --- | --- |
-| `THIN` | `M == 1` | one actor wearing N hats |
+| `THIN` | `M == 1` | every buyer shares one funding source |
 | `CONCENTRATED` | `1 < M < N` | some of the apparent independence is illusory |
 | `CONFIRMED` | `M == N` | no two buyers share a funder |
 
@@ -187,8 +193,8 @@ The token table is the product; the wallet table is supporting evidence.
 
 **The finding has to outrank the table.** The first rendering buried the whole
 point: 75 of 84 token rows were `WEAK` single-buyer noise, and the funder census
-— the one number worth remembering, *67 of 172 top smart-money wallets trace to
-13 people* — sat in a small box above a wall of grey.
+— the one number worth remembering, *67 of 172 top smart-money wallets were
+funded by 13 addresses* — sat in a small box above a wall of grey.
 
 So:
 

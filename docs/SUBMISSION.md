@@ -58,15 +58,15 @@ with its Nansen request ID so a run can be reconciled call-for-call.
 The post carries the video, so the first line has to work as a scroll-stopper
 on its own. Keep the finding concrete — the numbers are the hook, not adjectives.
 
-> Seven "independent" smart money wallets bought the same token.
+> 67 of the top 172 smart money wallets were funded by just 13 addresses.
 >
-> They were one person.
+> So when "5 smart money wallets are buying" a token — how many independent
+> decisions is that, really?
 >
 > I built a tool on @nansen_ai that tries to *falsify* smart-money signals
-> instead of copying them. 67 of the top 172 smart money wallets trace back to
-> just 13 funders.
+> instead of copying them.
 >
-> It walks the funder graph to collapse apparent independence, and flags tokens
+> It walks the funder graph to find buyers that share a funding source, and flags tokens
 > where smart traders are accumulating while the token flows into exchanges —
 > i.e. you're buying someone's exit.
 >

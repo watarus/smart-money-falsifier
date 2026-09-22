@@ -166,9 +166,12 @@ func censusHeadline(census score.FunderCensus, walletCount int) string {
 		return fmt.Sprintf("%d distinct First Funders across %d wallets — none shared by more than one wallet.",
 			census.DistinctFunders, walletCount)
 	}
-	who := "person"
+	// "address", not "person": a shared First Funder shows a funding link, and
+	// the same edge comes from a payout service or launchpad as from one trader
+	// splitting size. The headline claims only what the data shows.
+	noun := "address"
 	if len(parts) != 1 {
-		who = "people"
+		noun = "addresses"
 	}
 
 	// Name only the biggest few. Listing all of them runs past a screen's width
@@ -183,8 +186,8 @@ func censusHeadline(census score.FunderCensus, walletCount int) string {
 		tail = fmt.Sprintf(", and %d more", funders-named)
 		parts = parts[:named]
 	}
-	return fmt.Sprintf("%d of %d top smart-money wallets trace back to just %d %s: %s%s.",
-		traced, walletCount, funders, who, strings.Join(parts, ", "), tail)
+	return fmt.Sprintf("%d of %d top smart-money wallets were funded by just %d %s: %s%s.",
+		traced, walletCount, funders, noun, strings.Join(parts, ", "), tail)
 }
 
 func printTable(result *pipeline.Result) {
