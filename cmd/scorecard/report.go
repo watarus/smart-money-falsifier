@@ -388,6 +388,9 @@ func independenceLabelHTML(tr pipeline.TokenReport) string {
 	if tr.Verdict == score.VerdictExitOnly {
 		return "—"
 	}
+	if tr.Covered < tr.N {
+		return fmt.Sprintf("%d → %d (%d/%d checked)", tr.N, tr.M, tr.Covered, tr.N)
+	}
 	return fmt.Sprintf("%d → %d", tr.N, tr.M)
 }
 

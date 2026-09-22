@@ -32,6 +32,11 @@ type WalletInput struct {
 	// and internal/score's Cluster/FunderCensus functions.
 	Funders []Funder
 
+	// FunderChecked is true when related-wallets actually succeeded for
+	// this wallet (see BuyerInput.FunderChecked); it feeds Cluster's
+	// coverage count so absent data can't manufacture a CONFIRMED verdict.
+	FunderChecked bool
+
 	// LastTradeTime is the wallet's most recent trade timestamp, used for
 	// the recency term.
 	LastTradeTime time.Time

@@ -27,6 +27,15 @@ type BuyerInput struct {
 	PnLUSD  float64
 	WinRate float64
 	Funders []Funder
+
+	// FunderChecked is true when a related-wallets call for this wallet
+	// actually succeeded, regardless of whether it returned a First-Funder
+	// edge. It is false when the call never ran or failed (cache miss,
+	// API error, or the wallet fell outside --max-wallets). Distinguishing
+	// "checked, found nothing" from "never checked" is what lets Cluster
+	// report real coverage instead of letting missing data silently
+	// inflate M toward N — see ClusterResult.Covered.
+	FunderChecked bool
 }
 
 // ClusterGroup is one collapsed group of buyers who trace to the same
@@ -44,10 +53,14 @@ type ClusterGroup struct {
 	// members share an external funder. Holds that buyer's address.
 	ViaBuyer string
 
-	// NoFunderData is true for a singleton cluster whose one member has no
-	// First-Funder record at all. Distinguishing this from a singleton
-	// that simply has an unshared funder keeps the report honest that
-	// missing data never manufactured (or hid) a collapse.
+	// NoFunderData is true for a singleton cluster whose one member was
+	// never actually checked for funder data (BuyerInput.FunderChecked ==
+	// false) — a cache miss, a failed call, or a wallet outside
+	// --max-wallets. A singleton whose funder data WAS fetched and simply
+	// returned no First-Funder edge is a verified-independent wallet, not
+	// a coverage gap, so it does not set this flag. Distinguishing this
+	// keeps the report honest that missing data never manufactured (or
+	// hid) a collapse.
 	NoFunderData bool
 }
 
@@ -55,6 +68,7 @@ type ClusterGroup struct {
 type ClusterResult struct {
 	N        int // distinct buying wallets
 	M        int // distinct clusters after union
+	Covered  int // buyers whose funder data was actually fetched (BuyerInput.FunderChecked)
 	Clusters []ClusterGroup
 }
 
@@ -67,8 +81,12 @@ func Cluster(buyers []BuyerInput) ClusterResult {
 	}
 
 	idx := make(map[string]int, n)
+	covered := 0
 	for i, b := range buyers {
 		idx[b.Address] = i
+		if b.FunderChecked {
+			covered++
+		}
 	}
 
 	parent := make([]int, n)
@@ -129,7 +147,7 @@ func Cluster(buyers []BuyerInput) ClusterResult {
 		}
 
 		if len(members) == 1 {
-			if len(buyers[members[0]].Funders) == 0 {
+			if !buyers[members[0]].FunderChecked {
 				c.NoFunderData = true
 			}
 			clusters = append(clusters, c)
@@ -191,7 +209,7 @@ func Cluster(buyers []BuyerInput) ClusterResult {
 		return clusters[i].Members[0].Address < clusters[j].Members[0].Address
 	})
 
-	return ClusterResult{N: n, M: len(clusters), Clusters: clusters}
+	return ClusterResult{N: n, M: len(clusters), Covered: covered, Clusters: clusters}
 }
 
 // FunderCensus is the whole-universe view (not per-token) used to

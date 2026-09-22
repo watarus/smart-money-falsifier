@@ -85,9 +85,15 @@ func verdictLabel(v score.Verdict) string {
 // (VerdictExitOnly) no independence measurement was made at all, so
 // "1->1" would falsely claim a clustering result that never happened —
 // docs/DESIGN.md's Output section says this column reads "—" instead.
+// When coverage is partial (fewer than N buyers actually had funder data
+// fetched) the column names it, e.g. "4->2 (3/4 checked)", so a CONFIRMED
+// or UNVERIFIED reading is never mistaken for a fully-checked one.
 func independenceLabel(tr pipeline.TokenReport) string {
 	if tr.Verdict == score.VerdictExitOnly {
 		return "—"
+	}
+	if tr.Covered < tr.N {
+		return fmt.Sprintf("%d->%d (%d/%d checked)", tr.N, tr.M, tr.Covered, tr.N)
 	}
 	return fmt.Sprintf("%d->%d", tr.N, tr.M)
 }

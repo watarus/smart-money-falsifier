@@ -61,7 +61,28 @@ For each token, take the set of seed wallets that **bought** it.
 hats. `N = 7, M = 7` means seven independent decisions.
 
 A wallet with no funder data is its own cluster — absent data must never
-manufacture a collapse. State that explicitly in the output.
+manufacture a collapse.
+
+**Absent data must not manufacture independence either.** That rule cuts both
+ways, and the first implementation only honoured one direction. Run the tool
+over the full seed with only part of the funder data cached and every
+unenriched wallet becomes its own cluster, so `M` climbs toward `N` and the
+token is declared `CONFIRMED` — "no two buyers share a funder" — when the
+question was never asked. Observed live: 🌱KEK went from an honest `—` at 50
+wallets to `3 → 3 DISTRIBUTING` over the full seed purely because two of its
+buyers had no `related-wallets` response cached.
+
+So every token carries **funder coverage**: how many of its `N` buyers actually
+have a `related-wallets` result. Coverage below 100% means the independence
+question is open:
+
+- Report `N → M` together with coverage, e.g. `4 → 2 (3/4 checked)`.
+- `CONFIRMED` requires full coverage. With any buyer unchecked, the verdict is
+  `UNVERIFIED`, never `CONFIRMED` — a collapse found on partial data is still
+  real (finding a shared funder proves dependence), but *failing* to find one
+  across unchecked wallets proves nothing.
+- `THIN` and `CONCENTRATED` remain valid under partial coverage, since they rest
+  on funder matches that were positively observed.
 
 ## Exit signal
 

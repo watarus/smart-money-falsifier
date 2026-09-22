@@ -250,6 +250,7 @@ type TokenReport struct {
 	Verdict score.Verdict
 	N       int // distinct buying wallets
 	M       int // distinct clusters after collapse
+	Covered int // buyers whose funder data was actually fetched (score.ClusterResult.Covered)
 
 	SmartTraderNetFlowUSD float64
 	ExchangeNetFlowUSD    float64
@@ -265,10 +266,12 @@ type TokenReport struct {
 // EXIT_ONLY is the same finding as DISTRIBUTING minus a known independence
 // read, so it ranks alongside it rather than ahead of the differentiated
 // independence findings, which are this product's distinguishing part),
-// then CONFIRMED. WEAK (N < 3, no independence signal AND no exit signal)
-// sorts last and is collapsed behind a disclosure line by the report
-// rather than occupying rows in the main table; EXIT_ONLY, despite also
-// having N < 3, is never collapsed — see docs/DESIGN.md's Output section.
+// then CONFIRMED, then UNVERIFIED (an incomplete-coverage row says less
+// than a genuinely confirmed one, never more). WEAK (N < 3, no
+// independence signal AND no exit signal) sorts last and is collapsed
+// behind a disclosure line by the report rather than occupying rows in
+// the main table; EXIT_ONLY, despite also having N < 3, is never
+// collapsed — see docs/DESIGN.md's Output section.
 func verdictSeverity(v score.Verdict) int {
 	switch v {
 	case score.VerdictBoth:
@@ -281,8 +284,13 @@ func verdictSeverity(v score.Verdict) int {
 		return 3
 	case score.VerdictConfirmed:
 		return 4
-	default: // WEAK
+	case score.VerdictUnverified:
+		// A row that says "we don't know" ranks below every verdict that
+		// actually concluded something, confirmed included — it is a
+		// weaker claim than CONFIRMED, not a stronger one.
 		return 5
+	default: // WEAK
+		return 6
 	}
 }
 
@@ -308,7 +316,13 @@ func (p *Pipeline) Run(ctx context.Context) (*Result, error) {
 
 	walletResults := make(map[string]*walletEnrichment, len(walletAggs))
 	for addr := range walletAggs {
-		walletResults[addr] = &walletEnrichment{}
+		// relatedOK starts true and is cleared on the first failed
+		// related-wallets call for this wallet (any chain): a wallet with
+		// no First-Funder edge because it genuinely has none is verified
+		// data, but one call failing anywhere means the wallet's funder
+		// picture is incomplete and must not be trusted for the negative
+		// "no shared funder" claim — see score.BuyerInput.FunderChecked.
+		walletResults[addr] = &walletEnrichment{relatedOK: true}
 	}
 
 	// pnl-summary: one call per wallet, chain:"all" (verified working).
@@ -351,6 +365,9 @@ func (p *Pipeline) Run(ctx context.Context) (*Result, error) {
 		}, &related)
 		if err != nil {
 			recordFailure("wallet:related-wallets", item, err)
+			res.mu.Lock()
+			res.relatedOK = false
+			res.mu.Unlock()
 			return
 		}
 		res.mu.Lock()
@@ -451,9 +468,12 @@ func (p *Pipeline) Run(ctx context.Context) (*Result, error) {
 			BoughtTokens:  agg.boughtTokens,
 			Funders:       walletFunders[addr],
 		}
-		if r := walletResults[addr]; r != nil && r.pnl != nil {
-			wi.RealizedPnLUSD = r.pnl.RealizedPnLUSD
-			wi.WinRate = r.pnl.WinRate
+		if r := walletResults[addr]; r != nil {
+			wi.FunderChecked = r.relatedOK
+			if r.pnl != nil {
+				wi.RealizedPnLUSD = r.pnl.RealizedPnLUSD
+				wi.WinRate = r.pnl.WinRate
+			}
 		}
 		wallets = append(wallets, wi)
 	}
@@ -487,16 +507,17 @@ func (p *Pipeline) Run(ctx context.Context) (*Result, error) {
 		for _, addr := range buyerAddrs {
 			w := walletByAddr[addr]
 			buyers = append(buyers, score.BuyerInput{
-				Address: w.Address,
-				Label:   w.Label,
-				PnLUSD:  w.RealizedPnLUSD,
-				WinRate: w.WinRate,
-				Funders: w.Funders,
+				Address:       w.Address,
+				Label:         w.Label,
+				PnLUSD:        w.RealizedPnLUSD,
+				WinRate:       w.WinRate,
+				Funders:       w.Funders,
+				FunderChecked: w.FunderChecked,
 			})
 		}
 		cr := score.Cluster(buyers)
 		ti := tokenMeta[k]
-		verdict := score.DecideVerdict(cr.N, cr.M, ti.SmartTraderNetFlowUSD, ti.ExchangeNetFlowUSD, ti.FlowAvailable)
+		verdict := score.DecideVerdict(cr.N, cr.M, cr.Covered, ti.SmartTraderNetFlowUSD, ti.ExchangeNetFlowUSD, ti.FlowAvailable)
 
 		symbol := ti.Symbol
 		if symbol == "" {
@@ -511,6 +532,7 @@ func (p *Pipeline) Run(ctx context.Context) (*Result, error) {
 			Verdict:               verdict,
 			N:                     cr.N,
 			M:                     cr.M,
+			Covered:               cr.Covered,
 			SmartTraderNetFlowUSD: ti.SmartTraderNetFlowUSD,
 			ExchangeNetFlowUSD:    ti.ExchangeNetFlowUSD,
 			FlowAvailable:         ti.FlowAvailable,
@@ -560,6 +582,7 @@ type walletEnrichment struct {
 
 	mu             sync.Mutex
 	relatedWallets []nansen.RelatedWallet
+	relatedOK      bool // false once any related-wallets call for this wallet fails
 }
 
 type tokenEnrichment struct {
