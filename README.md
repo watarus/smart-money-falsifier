@@ -23,7 +23,7 @@ exchange, so this is not the usual "everyone withdrew from Binance" artefact.
 The exit signal — smart traders buying while the token flows into exchanges —
 fired on 32 of 330 tokens.
 
-Of the 50 tokens it could judge, 8 came back `CONCENTRATED` and 7 `CONFIRMED`.
+Of the 51 tokens it could judge, 9 came back `CONCENTRATED` and 7 `CONFIRMED`.
 The tool clears signals as well as flagging them; that is what makes a flag
 worth reading.
 
@@ -104,9 +104,10 @@ address has ever touched the token, so there was no exit to check — its
 exchange flow renders as `—`, never as a reassuring `+$0`.
 
 A token also needs at least `--min-signal-usd` (default $1,000) of smart-money
-buying before its buyers are judged. Four wallets spending $156 between them
-is noise, and running the independence test on noise produces `CONFIRMED`
-rows that read like endorsements.
+buying before the tool will clear it. Four wallets spending $156 between them
+is noise, and a clean verdict on noise reads like an endorsement. The floor
+only withholds that clean verdict: a shared funder that was actually found
+(`THIN`, `CONCENTRATED`, `BOTH`) is reported however little was bought.
 
 Every verdict renders next to the raw signed flow numbers, so you can disagree
 with the label by reading its inputs. Tokens with fewer than three buyers carry

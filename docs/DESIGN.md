@@ -25,7 +25,7 @@ Measured over the full seed (`out/calls.jsonl`, 1019 calls, 0 failures):
 - `exchange_net_flow_usd` is populated for 198 of 330 tokens (60%).
 - The exit signal fires on 32 of 330 tokens (10%) — rare enough to be worth
   flagging, common enough to be worth computing.
-- Of the 50 tokens that clear both floors: 8 `CONCENTRATED`, 7 `CONFIRMED`,
+- Of the 51 tokens with a verdict: 9 `CONCENTRATED`, 7 `CONFIRMED`,
   3 `INDEPENDENT`, 32 `DISTRIBUTING`, 0 `UNVERIFIED` once funder coverage is
   complete. Before the exit-data and signal-floor rules below, the same data
   produced 15 `CONFIRMED`; eight of those were passes on checks that never ran.
@@ -145,12 +145,19 @@ Tokens with `N < 3` buyers carry no independence signal at all; see Output for
 how they are presented.
 
 **Signal floor.** A token also needs `--min-signal-usd` (default $1,000) of
-smart-money buying in the seed before its buyers are judged. The real seed
+smart-money buying in the seed before the tool will clear it. The real seed
 had `RAFFLE` bought by four wallets for $156 in total, which came out
-`CONFIRMED` and read like an endorsement of noise. Below the floor the token
-is treated exactly like one with fewer than three buyers: no independence
-verdict, exit signal still evaluated. $1,000 is a judgement call, not a
-derived constant, which is why it is a flag.
+`CONFIRMED` and read like an endorsement of noise.
+
+The floor withholds only the negative claim — `CONFIRMED`, `INDEPENDENT`,
+`UNVERIFIED`, all of which say "no shared funder". A shared funder that was
+actually observed stays true however little was bought, so `THIN`,
+`CONCENTRATED` and `BOTH` stand below the floor. A first version withheld
+every verdict and hid PONCHEM, a real `3 → 2` collapse on under $1,000 of
+buying. Below the floor a withheld token takes the fewer-than-three-buyers
+path: the exit signal is still evaluated and surfaces as `DISTRIBUTING` if it
+fires. $1,000 is a judgement call, not a derived constant, which is why it is
+a flag.
 
 Verdicts are categorical. They are not a 0..1 score, because the previous
 version's continuous token score saturated — all 20 rendered tokens scored

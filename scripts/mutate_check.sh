@@ -43,8 +43,12 @@ run "exit check gates CONFIRMED" internal/score/verdict.go \
   "		if !hasFlow {
 			return VerdictIndependent
 		}" "" || fail=1
-run "signal floor withholds verdict" internal/pipeline/pipeline.go \
-  "	if boughtUSD < minSignalUSD {" "	if false && boughtUSD < minSignalUSD {" || fail=1
+run "signal floor withholds the clean verdict" internal/pipeline/pipeline.go \
+  "	if boughtUSD >= minSignalUSD {" "	if true || boughtUSD >= minSignalUSD {" || fail=1
+run "signal floor keeps observed shared funders" internal/pipeline/pipeline.go \
+  "	case score.VerdictThin, score.VerdictConcentrated, score.VerdictBoth:
+		return v
+	}" "	}" || fail=1
 run "null exchange avg stays distinguishable" internal/nansen/types.go \
   'ExchangeAvgFlowUSD      *float64 `json:"exchange_avg_flow_usd"`' \
   'ExchangeAvgFlowUSD      *float64 `json:"-"`' || fail=1

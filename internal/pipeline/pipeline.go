@@ -284,16 +284,29 @@ type TokenReport struct {
 // behind a disclosure line by the report rather than occupying rows in
 // the main table; EXIT_ONLY, despite also having N < 3, is never
 // collapsed — see docs/DESIGN.md's Output section.
-// judgeableBuyers is the buyer count the independence verdict gets to see.
-// Below the signal floor there is no smart-money signal to falsify, so it
-// reports zero buyers and the verdict is withheld exactly as it is under
-// three. The exit signal is unaffected: it reads Nansen's own cohort flow,
-// not the seed's purchase volume.
-func judgeableBuyers(n int, boughtUSD, minSignalUSD float64) int {
-	if boughtUSD < minSignalUSD {
-		return 0
+// decideWithFloor applies the signal floor to the one claim it protects:
+// "no two buyers share a funder". Below the floor that claim is withheld,
+// because four wallets spending $156 between them is not a signal worth
+// clearing, and a clean verdict on it reads like an endorsement.
+//
+// A shared funder is different. THIN, CONCENTRATED and BOTH rest on a
+// funding link that was actually observed, and that stays true however
+// little was bought, so those verdicts stand below the floor. The exit
+// signal is also unaffected: it reads Nansen's own cohort flow, not the
+// seed's purchase volume, so a withheld token still becomes EXIT_ONLY when
+// it fires.
+func decideWithFloor(n, m, covered int, smartFlow, exchFlow float64, exitCheckable bool, boughtUSD, minSignalUSD float64) score.Verdict {
+	v := score.DecideVerdict(n, m, covered, smartFlow, exchFlow, exitCheckable)
+	if boughtUSD >= minSignalUSD {
+		return v
 	}
-	return n
+	switch v {
+	case score.VerdictThin, score.VerdictConcentrated, score.VerdictBoth:
+		return v
+	}
+	// Re-decide as if there were no buyers to judge: the same path a token
+	// with fewer than three buyers takes.
+	return score.DecideVerdict(0, m, covered, smartFlow, exchFlow, exitCheckable)
 }
 
 func verdictSeverity(v score.Verdict) int {
@@ -547,9 +560,9 @@ func (p *Pipeline) Run(ctx context.Context) (*Result, error) {
 		}
 		cr := score.Cluster(buyers)
 		ti := tokenMeta[k]
-		verdictN := judgeableBuyers(cr.N, tokenBoughtUSD[k], p.MinSignalUSD)
 		exitCheckable := ti.FlowAvailable && ti.ExchangeObserved
-		verdict := score.DecideVerdict(verdictN, cr.M, cr.Covered, ti.SmartTraderNetFlowUSD, ti.ExchangeNetFlowUSD, exitCheckable)
+		verdict := decideWithFloor(cr.N, cr.M, cr.Covered, ti.SmartTraderNetFlowUSD, ti.ExchangeNetFlowUSD,
+			exitCheckable, tokenBoughtUSD[k], p.MinSignalUSD)
 
 		symbol := ti.Symbol
 		if symbol == "" {
