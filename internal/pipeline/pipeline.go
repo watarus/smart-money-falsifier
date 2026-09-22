@@ -267,7 +267,10 @@ type TokenReport struct {
 	ExchangeObserved bool
 	// SmartBoughtUSD is what the seed's smart-money wallets spent buying it.
 	SmartBoughtUSD float64
-	LiquidityUSD   *float64
+	// Move is the price path since smart money bought; nil when the token
+	// had no verdict (not fetched) or its price could not be established.
+	Move         *score.Move
+	LiquidityUSD *float64
 
 	Clusters []score.ClusterGroup
 }
@@ -284,6 +287,74 @@ type TokenReport struct {
 // behind a disclosure line by the report rather than occupying rows in
 // the main table; EXIT_ONLY, despite also having N < 3, is never
 // collapsed — see docs/DESIGN.md's Output section.
+// MoveTimeframe and MoveDateFrom/MoveDateTo fix the OHLCV request so the
+// cache key is stable across runs, for the same reason DefaultDateFrom is
+// fixed. The window opens the day before the seed so the entry bar is always
+// inside it; MoveDateTo is when the prices were last looked at and moves only
+// when the operator deliberately re-prices.
+const (
+	MoveTimeframe = "1h"
+	MoveDateFrom  = "2026-09-21"
+	MoveDateTo    = "2026-09-23"
+)
+
+// attachMoves prices every token that carries a verdict against what smart
+// money paid for it. Tokens with no verdict are left unpriced: they never
+// reach the report, so fetching them would spend a credit on nothing.
+func (p *Pipeline) attachMoves(ctx context.Context, seed *nansen.DexTradesResponse, reports []TokenReport, recordFailure func(stage, key string, err error)) {
+	buys := seedBuys(seed)
+	idx := make(map[string]int, len(reports))
+	keys := make([]string, 0, len(reports))
+	for i, tr := range reports {
+		if tr.Verdict == score.VerdictWeak || len(buys[tr.Key]) == 0 {
+			continue
+		}
+		idx[tr.Key] = i
+		keys = append(keys, tr.Key)
+	}
+	var mu sync.Mutex
+	p.runPool(ctx, keys, func(ctx context.Context, k string) {
+		tr := reports[idx[k]]
+		var resp nansen.TokenOHLCVResponse
+		_, err := p.Client.Do(ctx, nansen.PathTGMTokenOHLCV, moveRequest(tr.Chain, tr.Address), &resp)
+		if err != nil {
+			recordFailure("token:token-ohlcv", k, err)
+			return
+		}
+		candles := make([]score.Candle, 0, len(resp.Data))
+		sort.Slice(resp.Data, func(i, j int) bool { return resp.Data[i].IntervalStart < resp.Data[j].IntervalStart })
+		for _, c := range resp.Data {
+			candles = append(candles, score.Candle{High: c.High, Close: c.Close})
+		}
+		if m, ok := score.ComputeMove(buys[k], candles); ok {
+			mu.Lock()
+			reports[idx[k]].Move = &m
+			mu.Unlock()
+		}
+	})
+}
+
+func moveRequest(chain, address string) nansen.TokenOHLCVRequest {
+	return nansen.TokenOHLCVRequest{
+		Chain: chain, TokenAddress: address, Timeframe: MoveTimeframe,
+		Date: nansen.DateRangeReq{From: MoveDateFrom, To: MoveDateTo},
+	}
+}
+
+// seedBuys collects each token's smart-money purchases from the seed, the
+// raw material for its entry price.
+func seedBuys(seed *nansen.DexTradesResponse) map[string][]score.Buy {
+	out := map[string][]score.Buy{}
+	for _, tr := range seed.Data {
+		if tr.TokenBoughtAddress == "" {
+			continue
+		}
+		k := tokenKey(tr.Chain, tr.TokenBoughtAddress)
+		out[k] = append(out[k], score.Buy{ValueUSD: tr.TradeValueUSD, Amount: tr.TokenBoughtAmount})
+	}
+	return out
+}
+
 // decideWithFloor applies the signal floor to the one claim it protects:
 // "no two buyers share a funder". Below the floor that claim is withheld,
 // because four wallets spending $156 between them is not a signal worth
@@ -597,6 +668,7 @@ func (p *Pipeline) Run(ctx context.Context) (*Result, error) {
 		}
 		return tokenReports[i].Key < tokenReports[j].Key
 	})
+	p.attachMoves(ctx, seed, tokenReports, recordFailure)
 
 	censusInput := make([]score.BuyerInput, 0, len(wallets))
 	for _, w := range wallets {

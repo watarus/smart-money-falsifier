@@ -135,13 +135,22 @@ func printPlan(items []pipeline.PlanItem) {
 	fmt.Println(colorize("Call plan (no HTTP made yet):", ansiBold))
 	fmt.Printf("%-32s %8s %8s %8s %8s %10s\n", "endpoint", "total", "cached", "new", "cost/ea", "new credits")
 	totalNew, totalCredits := 0, 0
+	upper := false
 	for _, it := range items {
-		fmt.Printf("%-32s %8d %8d %8d %8d %10d\n", it.Endpoint, it.Total, it.Cached, it.New, it.CostPerCall, it.NewCreditsEstimate())
+		name := it.Endpoint
+		if it.UpperBound {
+			name += " (at most)"
+			upper = true
+		}
+		fmt.Printf("%-32s %8d %8d %8d %8d %10d\n", name, it.Total, it.Cached, it.New, it.CostPerCall, it.NewCreditsEstimate())
 		totalNew += it.New
 		totalCredits += it.NewCreditsEstimate()
 	}
 	fmt.Println(strings.Repeat("-", 78))
 	fmt.Printf("%-32s %8s %8s %8d %8s %10d\n", "TOTAL", "", "", totalNew, "", totalCredits)
+	if upper {
+		fmt.Println("(at most): only tokens that end up with a verdict are priced; the real count is lower.")
+	}
 }
 
 // censusHeadline is docs/DESIGN.md's Output requirement that the census
@@ -199,6 +208,47 @@ func exchFlowCell(tr pipeline.TokenReport) string {
 	return colorize(fmt.Sprintf("%14s", signedUSD(tr.ExchangeNetFlowUSD)), exchFlowColor(tr.ExchangeNetFlowUSD))
 }
 
+// LateMultiple is the run-up past which a verdict arrives too late to act
+// on as an entry: the move smart money caught has largely already happened.
+// Like the signal floor it is a judgement call; it only changes emphasis.
+const LateMultiple = 5.0
+
+// moveLabel states the price path since smart money bought, in the words a
+// reader needs to judge timing: how far it ran, and where it sits now.
+func moveLabel(m *score.Move) string {
+	if m == nil {
+		return ""
+	}
+	return fmt.Sprintf("peaked %s, now %s since smart money", multiple(m.PeakMultiple), multiple(m.NowMultiple))
+}
+
+func multiple(x float64) string {
+	if x >= 10 {
+		return fmt.Sprintf("%.0fx", x)
+	}
+	return fmt.Sprintf("%.1fx", x)
+}
+
+func moveLate(m *score.Move) bool { return m != nil && m.PeakMultiple >= LateMultiple }
+
+func moveClass(m *score.Move) string {
+	if moveLate(m) {
+		return "late"
+	}
+	return ""
+}
+
+func moveCell(m *score.Move) string {
+	if m == nil {
+		return colorize("—", ansiGray)
+	}
+	s := fmt.Sprintf("peak %s, now %s", multiple(m.PeakMultiple), multiple(m.NowMultiple))
+	if moveLate(m) {
+		return colorize(s, ansiYellow)
+	}
+	return s
+}
+
 func printTable(result *pipeline.Result) {
 	fmt.Println(colorize(censusHeadline(result.Census, result.WalletCount), ansiBold))
 
@@ -213,14 +263,15 @@ func printTable(result *pipeline.Result) {
 		shown = append(shown, tr)
 	}
 	fmt.Println(colorize(fmt.Sprintf("Tokens (%d scored) — the product: is the smart-money signal real?", len(shown)), ansiBold+ansiCyan))
-	fmt.Printf("%-4s %-24s %-12s %8s %14s %14s\n", "#", "symbol", "verdict", "N -> M", "smart_flow", "exch_flow")
+	fmt.Printf("%-4s %-24s %-12s %8s %14s %14s  %s\n", "#", "symbol", "verdict", "N -> M", "smart_flow", "exch_flow", "since smart money")
 	for i, tr := range shown {
-		fmt.Printf("%-4d %-24s %s %8s %s %s\n",
+		fmt.Printf("%-4d %-24s %s %8s %s %s  %s\n",
 			i+1, truncateStr(tr.Symbol, 24),
 			colorize(fmt.Sprintf("%-12s", verdictLabel(tr.Verdict)), verdictColor(tr.Verdict)),
 			independenceLabel(tr),
 			colorize(fmt.Sprintf("%14s", signedUSD(tr.SmartTraderNetFlowUSD)), smartFlowColor(tr.SmartTraderNetFlowUSD)),
-			exchFlowCell(tr))
+			exchFlowCell(tr),
+			moveCell(tr.Move))
 	}
 	if weak > 0 {
 		fmt.Println(colorize(fmt.Sprintf("%d tokens had too little smart-money buying to judge — fewer than 3 buyers or under $%.0f bought — and no exit signal", weak, result.MinSignalUSD), ansiGray))

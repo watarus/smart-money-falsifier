@@ -15,6 +15,10 @@ type PlanItem struct {
 	Cached      int
 	New         int
 	CostPerCall int
+	// UpperBound marks a stage whose true size depends on results the plan
+	// cannot compute without HTTP. Its Total is the most it can call, so the
+	// credit estimate errs high rather than surprising the operator.
+	UpperBound bool
 }
 
 func (i PlanItem) NewCreditsEstimate() int { return i.New * i.CostPerCall }
@@ -124,6 +128,27 @@ func (p *Pipeline) Plan(ctx context.Context) ([]PlanItem, error) {
 		}
 		items = append(items, item)
 	}
+
+	// Only tokens that end up with a verdict are priced, and verdicts need the
+	// enrichment above. Plan every token smart money bought instead: that is
+	// the ceiling.
+	buys := seedBuys(&seed)
+	ohlcv := PlanItem{Endpoint: nansen.PathTGMTokenOHLCV, CostPerCall: nansen.CreditCost[nansen.PathTGMTokenOHLCV], UpperBound: true}
+	for k, agg := range tokenAggs {
+		if len(buys[k]) == 0 {
+			continue
+		}
+		ohlcv.Total++
+		plan, err := p.Client.PlanCall(nansen.PathTGMTokenOHLCV, moveRequest(agg.chain, agg.address))
+		if err != nil {
+			return nil, err
+		}
+		if plan.CacheHit {
+			ohlcv.Cached++
+		}
+	}
+	ohlcv.New = ohlcv.Total - ohlcv.Cached
+	items = append(items, ohlcv)
 	return items, nil
 }
 

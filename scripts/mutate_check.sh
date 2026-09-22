@@ -56,6 +56,11 @@ run "coverage gates CONFIRMED" internal/score/verdict.go \
   "		if covered < n {
 			return VerdictUnverified
 		}" "" || fail=1
+run "move peak floored at smart-money fills" internal/score/move.go \
+  "		if b.ValueUSD > 0 && b.Amount > 0 && b.ValueUSD/b.Amount > peak {" \
+  "		if false && b.ValueUSD/b.Amount > peak {" || fail=1
+run "missing prices yield no move" internal/score/move.go \
+  "	if !candlePeak || last == 0 {" "	if (!candlePeak || last == 0) && false {" || fail=1
 
 NO_COLOR=1 go test ./... >/dev/null 2>&1 || { echo "suite not green after restore"; fail=1; }
 exit $fail

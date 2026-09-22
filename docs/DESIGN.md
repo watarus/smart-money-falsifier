@@ -166,10 +166,34 @@ exactly `1.000`, which is how a normalisation bug hides in plain sight.
 Any continuous score that survives must be rank-based within the cohort, and a
 test must assert that distinct inputs produce distinct outputs.
 
+## Move since smart money
+
+A verdict answers "is this signal real?" but not "is it still early?". X7
+came out `CONFIRMED` correctly, yet by the time the seed was fetched it had
+run 30x past the smart-money entry; a reader acting on the verdict alone
+would have bought near the top.
+
+Every token with a verdict and a smart-money buy in the seed is priced with
+`tgm/token-ohlcv` (1h bars, fixed window 2026-09-21 to 2026-09-23 so the cache
+key is stable). Tokens without a verdict never reach the report and are not
+priced. The report shows `peaked Nx, now Mx since smart money`, amber past 5x.
+
+- **Entry** is the volume-weighted price of the seed's smart-money buys. For
+  X7 it came to $0.0000973, inside the range of the first hourly bar, which
+  is how the seed and OHLCV price scales were cross-checked.
+- **Peak** is the highest bar high, floored at the highest price smart money
+  actually paid. REKT's buys printed at up to $0.00019 while its hourly bar
+  topped out at $0.000106: the token fell 98% within minutes, and the bar's
+  high missed the fills. Without the floor it read `peak 0.7x`, claiming the
+  token never traded where smart money bought it.
+- **Now** is the last close of a bar that traded; empty bars are skipped.
+- No bars, or no usable entry, means no move — rendered as `—`, never as a
+  guessed multiple.
+
 ## Hard constraint: credits
 
-Credits are consumed per call and priced per endpoint. Balance was 1143 after
-the full run. The buildathon wants 1,000+ calls logged between Sep 14 and
+Credits are consumed per call and priced per endpoint. Balance was 1103 after
+the full run and pricing. The buildathon wants 1,000+ calls logged between Sep 14 and
 Sep 27, but **calls are not the goal** — fetch what the product needs while
 developing and the count accumulates on its own. Do not add stages to inflate it.
 
@@ -180,6 +204,7 @@ developing and the count accumulates on its own. Do not add stages to inflate it
 | `profiler/address/related-wallets` | 1 | the funder edges |
 | `tgm/flow-intelligence` | 1 | the exit signal |
 | `tgm/token-information` | 1 | name, symbol, liquidity |
+| `tgm/token-ohlcv` | 1 | price path since smart money bought |
 
 Rules that stay:
 

@@ -31,6 +31,12 @@ worth reading.
 is a good buy: the seven that pass are mostly days-old small caps, and the
 tool knows nothing about their fundamentals.
 
+It also doesn't mean you're early. X7 came out `CONFIRMED` correctly — five
+independent buyers, money leaving exchanges — but had already run 30x past
+the price smart money paid, and later gave most of it back. So every judged
+token also shows its move since smart money bought: `peaked 30x, now 2.8x`.
+Moves past 5x are highlighted. A signal that is real and late is still late.
+
 Built with the [Nansen API](https://docs.nansen.ai/) for the Meridian Buildathon.
 
 ## Quick start
@@ -56,7 +62,7 @@ a 5-credit endpoint is an expensive mistake you only make once.
 (`smart-money/dex-trades`) is called exactly once, with `per_page: 1000`, across
 all chains. Everything downstream — `profiler/address/pnl-summary`,
 `profiler/address/related-wallets`, `tgm/flow-intelligence`,
-`tgm/token-information` — costs 1 credit. `tgm/indicators` and
+`tgm/token-information`, `tgm/token-ohlcv` — costs 1 credit. `tgm/indicators` and
 `profiler/address/counterparties` are useful but cost 5, so they are out.
 
 **Nothing is ever fetched twice.** Every response is written to

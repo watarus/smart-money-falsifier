@@ -46,6 +46,8 @@ type reportTokenRow struct {
 	ExchFlowClass     string
 	FlowNote          string
 	Liquidity         string
+	Move              string
+	MoveClass         string
 	Clusters          []reportClusterRow
 }
 
@@ -184,6 +186,8 @@ const reportTemplate = `<!DOCTYPE html>
   .v-bad { background: rgba(251,113,133,0.16); color: var(--accent-bad); }
   .v-warn { background: rgba(251,191,36,0.16); color: var(--accent-warn); }
   .v-good { background: rgba(110,231,183,0.16); color: var(--accent); }
+  .move { margin-top: 5px; font-size: 11px; font-weight: 600; color: var(--muted); line-height: 1.3; }
+  .move.late { color: var(--accent-warn); }
   .v-flat { background: rgba(136,145,167,0.16); color: var(--muted); }
   /* exchange-flow column: risk-based — positive (deposits/sell pressure) red,
      negative (withdrawals) green. */
@@ -204,7 +208,7 @@ const reportTemplate = `<!DOCTYPE html>
   details.token-row:last-child { border-bottom: none; }
   .token-summary-grid {
     display: grid;
-    grid-template-columns: 28px 2fr 1fr 90px 1fr 1fr 1fr;
+    grid-template-columns: 28px minmax(0,2fr) minmax(0,1fr) 90px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);
     align-items: center;
     gap: 12px;
     padding: 10px 14px;
@@ -261,7 +265,7 @@ const reportTemplate = `<!DOCTYPE html>
         <div class="token-summary-grid">
           <div>{{.Rank}}</div>
           <div><div class="symbol">{{.Symbol}}</div>{{if .Name}}<div class="name">{{.Name}}</div>{{end}}</div>
-          <div><span class="verdict {{.VerdictClass}}">{{.Verdict}}</span></div>
+          <div><span class="verdict {{.VerdictClass}}">{{.Verdict}}</span>{{if .Move}}<div class="move {{.MoveClass}}">{{.Move}}</div>{{end}}</div>
           <div><span class="verdict {{.IndependenceClass}}">{{.Independence}}</span></div>
           <div class="{{.SmartFlowClass}}">{{.SmartFlow}}</div>
           <div class="{{.ExchFlowClass}}">{{if .ExchFlow}}{{.ExchFlow}}{{else}}&mdash;{{end}}</div>
@@ -532,6 +536,8 @@ func writeReport(path string, result *pipeline.Result) error {
 			ExchFlow:          formatSignedUSD(tr.ExchangeNetFlowUSD),
 			ExchFlowClass:     exchFlowClass(tr.ExchangeNetFlowUSD),
 			Liquidity:         formatUSD(tr.LiquidityUSD),
+			Move:              moveLabel(tr.Move),
+			MoveClass:         moveClass(tr.Move),
 		}
 		switch {
 		case !tr.FlowAvailable:

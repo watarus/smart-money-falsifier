@@ -20,6 +20,7 @@ var CreditCost = map[string]int{
 	PathProfilerRelatedWallets: 1,
 	PathTGMFlowIntelligence:    1,
 	PathTGMTokenInformation:    1,
+	PathTGMTokenOHLCV:          1,
 }
 
 // --- smart-money/dex-trades ---
@@ -202,4 +203,31 @@ type TokenSpotMetrics struct {
 	UniqueSellers  *int     `json:"unique_sellers"`
 	LiquidityUSD   *float64 `json:"liquidity_usd"`
 	TotalHolders   *int     `json:"total_holders"`
+}
+
+// --- tgm/token-ohlcv ---
+// Shape verified against a live response for X7 (solana): prices are plain
+// numbers, "open" is null on the first candle, and market_cap is a nested
+// object rather than a number.
+
+const PathTGMTokenOHLCV = "tgm/token-ohlcv"
+
+type TokenOHLCVRequest struct {
+	Chain        string       `json:"chain"`
+	TokenAddress string       `json:"token_address"`
+	Timeframe    string       `json:"timeframe"`
+	Date         DateRangeReq `json:"date"`
+}
+
+type TokenOHLCVResponse struct {
+	Data []OHLCVCandle `json:"data"`
+}
+
+type OHLCVCandle struct {
+	IntervalStart string   `json:"interval_start"`
+	Open          *float64 `json:"open"`
+	High          *float64 `json:"high"`
+	Low           *float64 `json:"low"`
+	Close         *float64 `json:"close"`
+	VolumeUSD     *float64 `json:"volume_usd"`
 }
