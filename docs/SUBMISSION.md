@@ -53,30 +53,19 @@ with its Nansen request ID so a run can be reconciled call-for-call.
 - `tgm/flow-intelligence` — smart trader / whale / exchange net flow per token
 - `tgm/token-information` — market cap, liquidity, holders, token age
 
-## X post draft
+## X post
 
-The post carries the video, so the first line has to work as a scroll-stopper
-on its own. Keep the finding concrete — the numbers are the hook, not adjectives.
+276 of 280 characters (a URL counts as 23). The first line carries the finding;
+the claim stays at "funded by the same address", never "the same person".
+Attach `out/demo.mp4`; the GitHub link has to be in the post itself.
 
-> 67 of the top 172 smart money wallets were funded by just 13 addresses.
+> 67 of the top 172 smart money wallets on @nansen_ai were funded by just 13 addresses.
 >
-> So when "5 smart money wallets are buying" a token — how many independent
-> decisions is that, really?
+> So "5 smart money wallets are buying" may be fewer independent decisions than it looks.
 >
-> I built a tool on @nansen_ai that tries to *falsify* smart-money signals
-> instead of copying them.
+> I built a tool that tries to break a smart-money signal before you copy it.
 >
-> It walks the funder graph to find buyers that share a funding source, and flags tokens
-> where smart traders are accumulating while the token flows into exchanges —
-> i.e. you're buying someone's exit.
->
-> Go CLI, every API response cached, every call receipted with its Nansen
-> request id.
->
-> github.com/<user>/smart-money-falsifier
-
-Attach the 30–60s recording. Do not put the GitHub link only in a reply — the
-rules ask for it in the post itself.
+> https://github.com/watarus/smart-money-falsifier
 
 ## Repository
 
